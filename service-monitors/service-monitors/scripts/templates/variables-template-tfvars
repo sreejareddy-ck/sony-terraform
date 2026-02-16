@@ -1,0 +1,43 @@
+# (Required) SquadCast roster for the team that manages this service.
+# Must be a string
+roster                      = ""
+
+# (Required) A message to include with notifications for this monitor.
+# Must be a string
+message                     = ""
+
+# (Required) The monitor CRITICAL threshold.
+# Must be a number
+critical_threshold          =
+
+# (Optional) The monitor CRITICAL recovery threshold.
+# Must be a number. Default null
+# critical_recovery           =
+
+# (Optional) The monitor WARNING threshold.
+# Must be a number. Default null
+# warning_threshold           =
+
+# (Optional) The monitor WARNING recovery threshold.
+# Must be a number. Default null
+# warning_recovery            =
+
+# (Required) Datadog service tag to view on APM.
+# Must be a string
+datadog_service_tag         = ""
+
+# (Required) Resource type of component, refer https://sony-liv.atlassian.net/wiki/spaces/SS/pages/375750712/Service+Infra+Tagging+Conventions
+# Must be a string
+resource_type               = ""
+
+# (Required) Slack channel name in the format @slack-<channel-name> for sending alert messages.
+# Must be a string
+slack_channel               = ""
+
+# (Required) A message to include with a re-notification. Supports the @username notification allowed elsewhere.
+# Must be a string
+escalation_message          = ""
+
+# (Required) Link to Runbook
+# Must be a string
+runbook                     = ""
