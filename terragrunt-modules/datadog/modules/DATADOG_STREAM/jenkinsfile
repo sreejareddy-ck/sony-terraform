@@ -1,0 +1,81 @@
+// import hudson.model.*
+properties([
+    parameters([
+        choice(name: 'TERRAGRUNT_ACTION', choices: ['apply', 'destroy'], description: 'Terraform action to execute'),
+        choice(name: 'account_id', choices: ['020627682009','397031032863','548314864363','586125436800','767397670444'], description: ''),
+        string(name: 'region', defaultValue: 'ap-south-1', description: ''),
+        credentials(name: 'datadog_api_key', description:'Add Datadog Api key'),
+        credentials(name: 'datadog_app_key', description:'Add Datadog App key'),
+        choice(name: 'dry_run', choices: ['false','true'], description: 'Dry run option to refresh the jenkins job')
+    ]),
+    buildDiscarder(logRotator(numToKeepStr: '50'))
+])
+
+node ('Worker-Node-1'){
+    timeout(time: 2, unit: 'HOURS') {
+        if ("${params.dry_run}" != "true") {
+            try {
+                stage('checkout code'){
+                    cleanWs()
+                    checkout scm
+                }
+            }
+            catch (e) {
+                throw e
+            }
+            if ("${TERRAGRUNT_ACTION}" == "apply"){
+            try {
+                stage ('Terraform Plan Stage'){
+                    withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'Terraform-Jenkins-IAM-Role-SonyLIV-LogArchive']]) {
+                        sh """
+                        #export TF_LOG=DEBUG
+                        export ACCOUNT_ID=${account_id}
+                        terragrunt init --terragrunt-working-dir $WORKSPACE/datadog --terragrunt-non-interactive
+                        #terragrunt workspace new ${account_id} --terragrunt-log-level debug || true
+                        #terragrunt workspace select ${account_id} --terragrunt-log-level debug
+                        terragrunt plan --terragrunt-working-dir $WORKSPACE/datadog -var datadog_api_key=${datadog_api_key} -var datadog_app_key=${datadog_app_key} -var region=${region} --terragrunt-non-interactive 
+                        """
+                    }
+                }
+            }
+            catch (e) {
+                throw e
+            }
+            try {
+            stage('Confirm & Apply terragrunt changes'){
+                env.proceed = input message: 'Do you want to proceed with terragrunt apply ?',
+                        parameters: [choice(name: 'Input', choices: 'yes\nno', description: 'Answer')]
+
+                if (env.proceed == 'yes') {
+                    withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'Terraform-Jenkins-IAM-Role-SonyLIV-LogArchive']]) {
+                        withCredentials([string(credentialsId: "$datadog_api_key", variable: 'datadog_api_key'), string(credentialsId: "$datadog_app_key", variable: 'datadog_app_key')]) {
+                            sh """
+                            export ACCOUNT_ID=${account_id}
+                            terragrunt apply -auto-approve --terragrunt-working-dir $WORKSPACE/datadog -var datadog_api_key=${datadog_api_key} -var datadog_app_key=${datadog_app_key} -var region=${region} --terragrunt-non-interactive
+                            """
+                        }
+                    }
+                }
+            }
+            }
+            catch (e) {
+                throw e
+            }
+            }else if ("${TERRAGRUNT_ACTION}" == "destroy"){
+            try {
+                stage('Terraform Destroy Stage'){
+                    withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'Terraform-Jenkins-IAM-Role-SonyLIV-LogArchive']]) {
+                        sh """
+                        export ACCOUNT_ID=${account_id}
+                        terragrunt destroy -auto-approve --terragrunt-working-dir $WORKSPACE/datadog -var region=${region} --terragrunt-non-interactive
+                        """
+                    }
+                }
+            }
+            catch (e) {
+                throw e
+            }
+            }
+        }
+    }
+    }
